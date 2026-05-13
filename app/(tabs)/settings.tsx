@@ -7,7 +7,17 @@ export default function SettingsTab() {
       title: 'Préférences',
       items: [
         { id: 'nav', title: 'Application de navigation', icon: <MapIcon size={18} />, onPress: () => {} },
-        { id: 'notif', title: 'Notifications de prix', icon: <Bell size={18} />, type: 'toggle', value: true, onValueChange: () => {} },
+        { 
+          id: 'notif', 
+          title: 'Alertes de prix (Pro)', 
+          subtitle: 'Nécessite un plan Pro pour le serveur',
+          icon: <Bell size={18} />, 
+          type: 'toggle', 
+          value: false, 
+          onValueChange: () => {
+            toast('Cette fonctionnalité nécessite un plan Pro pour le backend.', { variant: 'info' });
+          } 
+        },
       ],
     },
     {

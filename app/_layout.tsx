@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BlinkProvider, createTamagui, tamaguiDefaultConfig, Theme, BlinkToastProvider } from '@blinkdotnew/mobile-ui';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { useNotifications } from '@/hooks/useNotifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ function WebStyleReset() {
 
 export default function RootLayout() {
   useFrameworkReady();
+  useNotifications();
 
   return (
     <BlinkProvider config={config} defaultTheme="light">

@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { YStack, XStack, SizableText, SafeArea, Button, AppHeader, ScrollView, Card, MapPin, Navigation, Share2, Heart, Divider, Badge, useTheme, toast } from '@blinkdotnew/mobile-ui';
+import React from 'react';
+import { YStack, XStack, SizableText, SafeArea, Button, AppHeader, ScrollView, Card, MapPin, Navigation, Share2, Heart, Divider, Badge, useTheme, toast, Spinner } from '@blinkdotnew/mobile-ui';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { fetchStations, fetchPrices } from '@/lib/blink';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchStations, fetchPrices, fetchFavorites, addFavorite, removeFavorite } from '@/lib/blink';
 import { Linking, Platform } from 'react-native';
 
 export default function StationDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const theme = useTheme();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: stations } = useQuery({
     queryKey: ['stations'],
@@ -21,7 +21,30 @@ export default function StationDetailScreen() {
     queryFn: () => fetchPrices(id as string),
   });
 
+  const { data: favorites, isLoading: loadingFavorites } = useQuery({
+    queryKey: ['favorites'],
+    queryFn: () => fetchFavorites(),
+  });
+
   const station = stations?.find(s => s.id === id);
+  const favorite = favorites?.find(f => f.stationId === id);
+  const isFavorite = !!favorite;
+
+  const addFavMutation = useMutation({
+    mutationFn: () => addFavorite(id as string),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      toast('Ajouté aux favoris', { variant: 'success' });
+    },
+  });
+
+  const removeFavMutation = useMutation({
+    mutationFn: () => removeFavorite(favorite!.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      toast('Retiré des favoris');
+    },
+  });
 
   if (!station) return null;
 
@@ -43,8 +66,11 @@ export default function StationDetailScreen() {
   };
 
   const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    toast(isFavorite ? 'Retiré des favoris' : 'Ajouté aux favoris', { variant: isFavorite ? 'default' : 'success' });
+    if (isFavorite) {
+      removeFavMutation.mutate();
+    } else {
+      addFavMutation.mutate();
+    }
   };
 
   return (
@@ -56,7 +82,24 @@ export default function StationDetailScreen() {
         rightElement={
           <XStack gap="$2">
             <Button size="$3" circular onPress={onShare} chromeless icon={<Share2 size={20} color="$color11" />} />
-            <Button size="$3" circular onPress={toggleFavorite} chromeless icon={<Heart size={20} color={isFavorite ? '$red9' : '$color11'} fill={isFavorite ? '$red9' : 'transparent'} />} />
+            <Button 
+              size="$3" 
+              circular 
+              onPress={toggleFavorite} 
+              chromeless 
+              disabled={loadingFavorites}
+              icon={
+                loadingFavorites ? (
+                  <Spinner size="small" />
+                ) : (
+                  <Heart 
+                    size={20} 
+                    color={isFavorite ? '$red9' : '$color11'} 
+                    fill={isFavorite ? '$red9' : 'transparent'} 
+                  />
+                )
+              } 
+            />
           </XStack>
         }
       />
