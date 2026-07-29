@@ -191,11 +191,19 @@ export default function ExploreScreen() {
                 borderRadius="$4"
                 marginVertical="$1"
                 pressTheme
+                subtitle={`${station.brand} • ${station.city}${station.distance ? ` • ${station.distance.toFixed(1)} km` : ''}`}
                 rightElement={
                   <YStack alignItems="flex-end" gap="$1">
-                    <SizableText size="$5" fontWeight="800" color={!userLocation && index === 0 ? '$green9' : '$color12'}>
-                      {station.price?.toFixed(3)} €
-                    </SizableText>
+                    <XStack gap="$2" flexWrap="wrap" justifyContent="flex-end">
+                      {station.allPrices?.slice(0, 4).map((p) => (
+                        <YStack key={p.fuelType} alignItems="center" gap={2}>
+                          <SizableText size="$1" color="$color9" fontWeight="600">{p.fuelType}</SizableText>
+                          <SizableText size="$3" fontWeight="800" color={p.fuelType === selectedFuel ? '$color12' : '$color10'}>
+                            {p.price.toFixed(3)}
+                          </SizableText>
+                        </YStack>
+                      ))}
+                    </XStack>
                     {!userLocation && index === 0 && (
                       <Badge variant="success" size="$1">MOINS CHER</Badge>
                     )}
