@@ -3,9 +3,11 @@ import { YStack, SizableText, SafeArea, AppHeader, ScrollView, EmptyState, Heart
 import { useQuery } from '@tanstack/react-query';
 import { fetchStations, fetchFavorites, fetchPrices } from '@/lib/blink';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
 
   const { data: stations, isLoading: loadingStations } = useQuery({
     queryKey: ['stations'],
@@ -13,8 +15,9 @@ export default function FavoritesScreen() {
   });
 
   const { data: favorites, isLoading: loadingFavorites } = useQuery({
-    queryKey: ['favorites'],
-    queryFn: () => fetchFavorites(),
+    queryKey: ['favorites', user?.id],
+    queryFn: () => fetchFavorites(user?.id),
+    enabled: isAuthenticated,
   });
 
   const { data: prices } = useQuery({
@@ -32,7 +35,17 @@ export default function FavoritesScreen() {
     <SafeArea flex={1} backgroundColor="$background">
       <AppHeader title="Mes Favoris" />
       
-      {isLoading ? (
+      {!isAuthenticated ? (
+        <YStack flex={1} justifyContent="center">
+          <EmptyState
+            icon={<Heart size={80} color="$color7" />}
+            title="Connectez-vous"
+            description="Connectez-vous pour sauvegarder vos stations préférées."
+            onPress={() => router.push('/auth')}
+            ctaLabel="Se connecter"
+          />
+        </YStack>
+      ) : isLoading ? (
         <YStack flex={1} justifyContent="center" alignItems="center">
           <Spinner size="large" />
         </YStack>

@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { YStack, XStack, SizableText, Input, Search, ScrollView, SafeArea, Button, ListItem, Badge, AppHeader, Spinner, toast, MapPin } from '@blinkdotnew/mobile-ui';
+import { YStack, XStack, SizableText, Input, Search, ScrollView, SafeArea, Button, ListItem, Badge, AppHeader, Spinner, toast, MapPin, User } from '@blinkdotnew/mobile-ui';
 import { useQuery } from '@tanstack/react-query';
 import { fetchStations, fetchPrices, Station, Price } from '@/lib/blink';
 import { useRouter } from 'expo-router';
 import { RefreshControl, Platform } from 'react-native';
 import * as Location from 'expo-location';
+import { useAuth } from '@/context/AuthContext';
 
 const FUEL_TYPES = [
   { label: 'Gazole', value: 'Gazole' },
@@ -30,6 +31,7 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
   const [selectedFuel, setSelectedFuel] = useState('Gazole');
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
@@ -106,7 +108,22 @@ export default function ExploreScreen() {
 
   return (
     <SafeArea flex={1} backgroundColor="$background">
-      <AppHeader title="Pompix Essence" />
+      <AppHeader 
+        title="Pompix Essence" 
+        rightElement={
+          <XStack gap="$2" alignItems="center">
+            {!isAuthenticated && (
+              <Button 
+                size="$4" 
+                circular 
+                variant="outline" 
+                onPress={() => router.push('/auth')}
+                icon={<User size={20} />}
+              />
+            )}
+          </XStack>
+        }
+      />
       
       <YStack padding="$4" gap="$4">
         <XStack gap="$2" alignItems="center">

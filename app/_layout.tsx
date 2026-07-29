@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BlinkProvider, createTamagui, tamaguiDefaultConfig, Theme, BlinkToastProvider } from '@blinkdotnew/mobile-ui';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useNotifications } from '@/hooks/useNotifications';
+import { AuthProvider } from '@/context/AuthContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,14 +37,17 @@ export default function RootLayout() {
     <BlinkProvider config={config} defaultTheme="light">
       <Theme name="light">
         <QueryClientProvider client={queryClient}>
-          <BlinkToastProvider>
-            <WebStyleReset />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </BlinkToastProvider>
+          <AuthProvider>
+            <BlinkToastProvider>
+              <WebStyleReset />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </BlinkToastProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </Theme>
     </BlinkProvider>
