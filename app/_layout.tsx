@@ -42,6 +42,7 @@ export default function RootLayout() {
               <WebStyleReset />
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
+                <Stack.Screen name="onboarding" />
                 <Stack.Screen name="auth" options={{ presentation: 'modal' }} />
                 <Stack.Screen name="+not-found" />
               </Stack>

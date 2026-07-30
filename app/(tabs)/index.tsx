@@ -1,9 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { YStack, XStack, SizableText, Input, Search, ScrollView, SafeArea, Button, ListItem, Badge, AppHeader, Spinner, toast, MapPin, User } from '@blinkdotnew/mobile-ui';
+import {
+  YStack, XStack, SizableText, Input, ScrollView, SafeArea,
+  Button, ListItem, Badge, AppHeader, toast,
+  Search, MapPin, User, ArrowUpDown, Sliders,
+} from '@blinkdotnew/mobile-ui';
 import { useQuery } from '@tanstack/react-query';
-import { fetchStations, fetchPrices, Station, Price } from '@/lib/blink';
+import { fetchStations, fetchPrices } from '@/lib/blink';
+import type { Station, Price } from '@/lib/blink';
 import { useRouter } from 'expo-router';
-import { RefreshControl, Platform } from 'react-native';
+import { RefreshControl } from 'react-native';
 import * as Location from 'expo-location';
 import { useAuth } from '@/context/AuthContext';
 
@@ -15,38 +20,47 @@ const FUEL_TYPES = [
   { label: 'E85', value: 'E85' },
   { label: 'GPLc', value: 'GPLc' },
 ];
+const RADIUS_OPTIONS = [5, 10, 20, 50];
 
-// Helper to calculate distance in km between two points
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371; // Earth's radius in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+type StationEnriched = Station & {
+  price?: number;
+  allPrices: Price[];
+  distance?: number;
+};
 export default function ExploreScreen() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [selectedFuel, setSelectedFuel] = useState('Gazole');
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [sortMode, setSortMode] = useState<'distance' | 'price'>('price');
+  const [radiusKm, setRadiusKm] = useState<number | null>(20);
+  const [showFilters, setShowFilters] = useState(false);
 
   const { data: stations, isLoading: loadingStations, refetch: refetchStations } = useQuery({
     queryKey: ['stations'],
     queryFn: fetchStations,
   });
-
   const { data: prices, isLoading: loadingPrices, refetch: refetchPrices } = useQuery({
     queryKey: ['prices'],
     queryFn: () => fetchPrices(),
   });
 
+  useEffect(() => {
+    if (userLocation) setSortMode('distance');
+  }, [userLocation]);
   const requestLocation = async () => {
     setIsLocating(true);
     try {
@@ -55,11 +69,10 @@ export default function ExploreScreen() {
         toast('Permission de localisation refusée', { variant: 'error' });
         return;
       }
-
       const location = await Location.getCurrentPositionAsync({});
       setUserLocation(location);
       toast('Localisation activée', { variant: 'success' });
-    } catch (error) {
+    } catch {
       toast('Erreur de localisation', { variant: 'error' });
     } finally {
       setIsLocating(false);
@@ -71,140 +84,148 @@ export default function ExploreScreen() {
     toast('Mis à jour', { variant: 'success' });
   };
 
-  const filteredStations = useMemo(() => {
+  const filteredStations: StationEnriched[] = useMemo(() => {
     if (!stations || !prices) return [];
-    
-    let results = stations
-      .filter(s => 
+    let results: StationEnriched[] = stations
+      .filter((s) =>
         s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.zipCode.includes(searchQuery)
-      )
-      .map(s => {
-        const stationPrices = prices.filter(p => p.stationId === s.id);
-        const fuelPrice = stationPrices.find(p => p.fuelType === selectedFuel);
-        const distance = userLocation 
-          ? calculateDistance(userLocation.coords.latitude, userLocation.coords.longitude, s.latitude, s.longitude)
+        s.zipCode.includes(searchQuery))
+      .map((s) => {
+        const stationPrices = prices.filter((p) => p.stationId === s.id);
+        const fuelPrice = stationPrices.find((p) => p.fuelType === selectedFuel);
+        const distance = userLocation
+          ? calculateDistance(
+              userLocation.coords.latitude, userLocation.coords.longitude,
+              s.latitude, s.longitude)
           : undefined;
-
-        return {
-          ...s,
-          price: fuelPrice?.price,
-          allPrices: stationPrices,
-          distance,
-        };
+        return { ...s, price: fuelPrice?.price, allPrices: stationPrices, distance };
       })
-      .filter(s => s.price !== undefined);
-
-    // If user has location, sort by distance, otherwise sort by price
-    if (userLocation) {
-      return results.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-    } else {
-      return results.sort((a, b) => (a.price || 0) - (b.price || 0));
+      .filter((s) => s.price !== undefined);
+    if (userLocation && radiusKm !== null) {
+      results = results.filter((s) => s.distance !== undefined && s.distance <= radiusKm);
     }
-  }, [stations, prices, searchQuery, selectedFuel, userLocation]);
+    if (sortMode === 'distance' && userLocation) {
+      results.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    } else {
+      results.sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+    }
+    return results;
+  }, [stations, prices, searchQuery, selectedFuel, userLocation, sortMode, radiusKm]);
 
   const isLoading = loadingStations || loadingPrices;
+  const isSortingByPrice = sortMode === 'price' || !userLocation;
+
+  const rightElement = (
+    <XStack gap="$2" alignItems="center">
+      <Button size="$4" circular variant={userLocation ? 'primary' : 'outline'}
+        onPress={requestLocation} loading={isLocating} icon={<MapPin size={20} />} />
+      {!isAuthenticated && (
+        <Button size="$4" circular variant="outline"
+          onPress={() => router.push('/auth')} icon={<User size={20} />} />
+      )}
+    </XStack>
+  );
 
   return (
     <SafeArea flex={1} backgroundColor="$background">
-      <AppHeader 
-        title="Pompix Essence" 
-        rightElement={
-          <XStack gap="$2" alignItems="center">
-            {!isAuthenticated && (
-              <Button 
-                size="$4" 
-                circular 
-                variant="outline" 
-                onPress={() => router.push('/auth')}
-                icon={<User size={20} />}
-              />
-            )}
-          </XStack>
-        }
-      />
-      
-      <YStack padding="$4" gap="$4">
-        <XStack gap="$2" alignItems="center">
-          <XStack flex={1} gap="$2" alignItems="center" backgroundColor="$color2" paddingHorizontal="$4" borderRadius="$10" height={50}>
-            <Search size={20} color="$color9" />
-            <Input 
-              flex={1} 
-              placeholder="Ville, code postal ou station..." 
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              borderWidth={0}
-              backgroundColor="transparent"
-              height="100%"
-            />
-          </XStack>
-          <Button 
-            size="$4" 
-            circular 
-            variant={userLocation ? 'primary' : 'outline'}
-            onPress={requestLocation}
-            loading={isLocating}
-            icon={<MapPin size={20} />}
-          />
+      <AppHeader title="Pompix Essence" rightElement={rightElement} />
+
+      <XStack paddingHorizontal="$4" paddingBottom="$2" gap="$2" alignItems="center">
+        <XStack flex={1} gap="$2" alignItems="center" backgroundColor="$color2"
+          paddingHorizontal="$4" borderRadius="$10" height={44}>
+          <Search size={18} color="$color9" />
+          <Input flex={1} placeholder="Ville, code postal..." value={searchQuery}
+            onChangeText={setSearchQuery} borderWidth={0}
+            backgroundColor="transparent" height="100%" />
         </XStack>
+      </XStack>
 
-        <YStack gap="$2">
-          <SizableText size="$3" fontWeight="600" color="$color11">Type de carburant</SizableText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <XStack gap="$2">
-              {FUEL_TYPES.map((fuel) => (
-                <Button
-                  key={fuel.value}
-                  size="$3"
-                  borderRadius="$10"
-                  variant={selectedFuel === fuel.value ? 'primary' : 'outline'}
-                  onPress={() => setSelectedFuel(fuel.value)}
-                >
-                  {fuel.label}
+      <ScrollView flex={1} contentContainerStyle={{ paddingBottom: 20 }}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} />}>
+        <YStack paddingHorizontal="$4" gap="$4" paddingBottom="$4">
+          <YStack gap="$2">
+            <SizableText size="$3" fontWeight="600" color="$color11">
+              Type de carburant
+            </SizableText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <XStack gap="$2">
+                {FUEL_TYPES.map((fuel) => (
+                  <Button key={fuel.value} size="$3" borderRadius="$10"
+                    variant={selectedFuel === fuel.value ? 'primary' : 'outline'}
+                    onPress={() => setSelectedFuel(fuel.value)}>
+                    {fuel.label}
+                  </Button>
+                ))}
+              </XStack>
+            </ScrollView>
+          </YStack>
+
+          <Button size="$3" variant="outline" borderRadius="$10"
+            onPress={() => setShowFilters(!showFilters)} icon={<Sliders size={16} />}>
+            Filtres
+          </Button>
+
+          {showFilters && (
+            <YStack gap="$3">
+              <XStack gap="$2" alignItems="center" flexWrap="wrap">
+                <Button size="$2" borderRadius="$8" variant="outline"
+                  icon={sortMode === 'distance' ? <MapPin size={14} /> : <ArrowUpDown size={14} />}
+                  onPress={() => setSortMode(sortMode === 'distance' ? 'price' : 'distance')}>
+                  {sortMode === 'distance' ? 'Distance' : 'Prix'}
                 </Button>
-              ))}
-            </XStack>
-          </ScrollView>
+              </XStack>
+              {userLocation && (
+                <XStack gap="$1" flexWrap="wrap">
+                  {RADIUS_OPTIONS.map((r) => (
+                    <Button key={r} size="$2" borderRadius="$8"
+                      variant={radiusKm === r ? 'primary' : 'outline'}
+                      onPress={() => setRadiusKm(r)}>
+                      {r} km
+                    </Button>
+                  ))}
+                  <Button size="$2" borderRadius="$8"
+                    variant={radiusKm === null ? 'primary' : 'outline'}
+                    onPress={() => setRadiusKm(null)}>
+                    Toutes
+                  </Button>
+                </XStack>
+              )}
+            </YStack>
+          )}
         </YStack>
-      </YStack>
 
-      <ScrollView 
-        flex={1} 
-        contentContainerStyle={{ paddingBottom: 20 }}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} />}
-      >
         {isLoading ? (
-          <YStack flex={1} justifyContent="center" alignItems="center" paddingTop="$10">
-            <Spinner size="large" color="$color9" />
-            <SizableText marginTop="$4" color="$color11">Chargement des stations...</SizableText>
+          <YStack gap="$2" paddingHorizontal="$4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <YStack key={i} height={80} backgroundColor="$color2"
+                borderRadius="$4" opacity={0.5} />
+            ))}
           </YStack>
         ) : filteredStations.length > 0 ? (
           <YStack gap="$2" paddingHorizontal="$4">
             {filteredStations.map((station, index) => (
-              <ListItem
-                key={station.id}
-                title={station.name}
+              <ListItem key={station.id} title={station.name}
                 subtitle={`${station.brand} • ${station.city}${station.distance ? ` • ${station.distance.toFixed(1)} km` : ''}`}
                 onPress={() => router.push(`/station/${station.id}`)}
-                backgroundColor="$color2"
-                borderRadius="$4"
-                marginVertical="$1"
-                pressTheme
-                subtitle={`${station.brand} • ${station.city}${station.distance ? ` • ${station.distance.toFixed(1)} km` : ''}`}
+                backgroundColor="$color2" borderRadius="$4" marginVertical="$1" pressTheme
                 rightElement={
                   <YStack alignItems="flex-end" gap="$1">
                     <XStack gap="$2" flexWrap="wrap" justifyContent="flex-end">
-                      {station.allPrices?.slice(0, 4).map((p) => (
+                      {station.allPrices.slice(0, 3).map((p) => (
                         <YStack key={p.fuelType} alignItems="center" gap={2}>
-                          <SizableText size="$1" color="$color9" fontWeight="600">{p.fuelType}</SizableText>
-                          <SizableText size="$3" fontWeight="800" color={p.fuelType === selectedFuel ? '$color12' : '$color10'}>
+                          <SizableText size="$1" color="$color9" fontWeight="600">
+                            {p.fuelType}
+                          </SizableText>
+                          <SizableText size="$3"
+                            fontWeight={p.fuelType === selectedFuel ? '800' : '400'}
+                            color={p.fuelType === selectedFuel ? '$color12' : '$color10'}>
                             {p.price.toFixed(3)}
                           </SizableText>
                         </YStack>
                       ))}
                     </XStack>
-                    {!userLocation && index === 0 && (
+                    {isSortingByPrice && index === 0 && (
                       <Badge variant="success" size="$1">MOINS CHER</Badge>
                     )}
                   </YStack>
@@ -213,9 +234,13 @@ export default function ExploreScreen() {
             ))}
           </YStack>
         ) : (
-          <YStack flex={1} justifyContent="center" alignItems="center" paddingTop="$10" paddingHorizontal="$10">
-            <SizableText textAlign="center" color="$color11">
+          <YStack flex={1} justifyContent="center" alignItems="center"
+            paddingTop="$10" paddingHorizontal="$10">
+            <SizableText textAlign="center" color="$color11" size="$4">
               Aucune station trouvée pour ce carburant ou cette recherche.
+            </SizableText>
+            <SizableText textAlign="center" color="$color9" size="$3" marginTop="$2">
+              Essayez d'élargir votre rayon ou de changer de carburant.
             </SizableText>
           </YStack>
         )}
