@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { YStack, XStack, SizableText, SafeArea, Button } from '@blinkdotnew/mobile-ui';
 import { useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STEPS = [
   {
@@ -30,6 +31,7 @@ export default function OnboardingScreen() {
   };
 
   const handleFinish = () => {
+    AsyncStorage.setItem('hasSeenOnboarding', 'true');
     router.replace('/(tabs)');
   };
 

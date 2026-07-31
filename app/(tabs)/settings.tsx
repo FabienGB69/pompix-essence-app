@@ -95,7 +95,7 @@ export default function SettingsTab() {
                   <YStack key={alert.id}>
                     <ListItem
                       title={alert.fuelType}
-                      subtitle={`Alerte si < ${alert.thresholdPrice.toFixed(3)} €`}
+                      subtitle={`Alerte si ${'<'} ${alert.thresholdPrice.toFixed(3)} €`}
                       onPress={() => router.push(`/station/${alert.stationId}`)}
                       backgroundColor="transparent"
                       rightElement={
