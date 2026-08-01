@@ -121,7 +121,7 @@ export default function ExploreScreen() {
       <Button size="$4" circular variant={userLocation ? 'primary' : 'outline'}
         onPress={requestLocation} loading={isLocating} icon={<MapPin size={20} />} />
       {!isAuthenticated && (
-        <Button size="$4" circular variant="outline"
+        <Button size="$4" circular variant="outlined"
           onPress={() => router.push('/auth')} icon={<User size={20} />} />
       )}
     </XStack>
@@ -161,7 +161,7 @@ export default function ExploreScreen() {
             </ScrollView>
           </YStack>
 
-          <Button size="$3" variant="outline" borderRadius="$10"
+          <Button size="$3" variant="outlined" borderRadius="$10"
             onPress={() => setShowFilters(!showFilters)} icon={<Sliders size={16} />}>
             Filtres
           </Button>
@@ -169,7 +169,7 @@ export default function ExploreScreen() {
           {showFilters && (
             <YStack gap="$3">
               <XStack gap="$2" alignItems="center" flexWrap="wrap">
-                <Button size="$2" borderRadius="$8" variant="outline"
+                <Button size="$2" borderRadius="$8" variant="outlined"
                   icon={sortMode === 'distance' ? <MapPin size={14} /> : <ArrowUpDown size={14} />}
                   onPress={() => setSortMode(sortMode === 'distance' ? 'price' : 'distance')}>
                   {sortMode === 'distance' ? 'Distance' : 'Prix'}

@@ -151,7 +151,7 @@ export default function StationDetailScreen() {
               <SizableText color="$color11">{station.address}, {station.city}</SizableText>
             </XStack>
             {travelMin != null && (
-              <Badge variant="outline" paddingHorizontal="$2" alignSelf="flex-start">
+              <Badge variant="outlined" paddingHorizontal="$2" alignSelf="flex-start">
                 <XStack gap="$1" alignItems="center"><Navigation size={12} color="$color9" />
                   <SizableText size="$2" color="$color11">À {dist.toFixed(1)} km · ~{travelMin} min</SizableText></XStack>
               </Badge>
@@ -163,7 +163,7 @@ export default function StationDetailScreen() {
               <XStack justifyContent="space-between" alignItems="center">
                 <SizableText size="$5" fontWeight="700">Prix des carburants</SizableText>
                 {lastUpdate && (
-                  <Badge variant="outline" paddingHorizontal="$2">
+                  <Badge variant="outlined" paddingHorizontal="$2">
                     <XStack gap="$1" alignItems="center"><Clock size={10} color="$color9" />
                       <SizableText size="$1" color="$color9">Mis à jour {hoursAgoText(lastUpdate).toLowerCase()}</SizableText></XStack>
                   </Badge>
@@ -235,7 +235,7 @@ export default function StationDetailScreen() {
             <SizableText size="$5" fontWeight="700">Navigation</SizableText>
             <XStack gap="$4">
               <Button flex={1} variant="primary" icon={<Navigation size={20} />} onPress={openInMaps}>Maps</Button>
-              <Button flex={1} variant="outline" onPress={openInWaze}>Waze</Button>
+              <Button flex={1} variant="outlined" onPress={openInWaze}>Waze</Button>
             </XStack>
             {travelMin != null && (
               <SizableText size="$2" color="$color9" textAlign="center">Trajet estimé: ~{travelMin} min</SizableText>
@@ -246,7 +246,7 @@ export default function StationDetailScreen() {
             <SizableText size="$5" fontWeight="700">Services</SizableText>
             <XStack flexWrap="wrap" gap="$2">
               {station.services.map((service, idx) => (
-                <Badge key={idx} variant="outline" paddingHorizontal="$3" paddingVertical="$1">{service}</Badge>
+                <Badge key={idx} variant="outlined" paddingHorizontal="$3" paddingVertical="$1">{service}</Badge>
               ))}
             </XStack>
           </YStack>
@@ -268,7 +268,7 @@ export default function StationDetailScreen() {
                         <SizableText fontWeight="600">{alert.fuelType}</SizableText>
                         <SizableText size="$2" color="$color11">Alerte si {'<'} {alert.thresholdPrice.toFixed(3)} €</SizableText>
                       </YStack>
-                      <Button size="$2" variant="outline" onPress={() => removeAlertMutation.mutate(alert.id)}>Supprimer</Button>
+                      <Button size="$2" variant="outlined" onPress={() => removeAlertMutation.mutate(alert.id)}>Supprimer</Button>
                     </XStack>
                   ))}
                 </YStack>

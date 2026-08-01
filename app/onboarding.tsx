@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { YStack, XStack, SizableText, SafeArea, Button } from '@blinkdotnew/mobile-ui';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { YStack, XStack, SizableText, SafeArea, Button, Spinner } from '@blinkdotnew/mobile-ui';
+import { useRouter, Redirect } from 'expo-router';
 import { Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -22,7 +22,23 @@ const STEPS = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
+  const [checking, setChecking] = useState(true);
   const step = STEPS[currentStep];
+
+  useEffect(() => {
+    AsyncStorage.getItem('hasSeenOnboarding').then((value) => {
+      if (value === 'true') router.replace('/(tabs)');
+      else setChecking(false);
+    }).catch(() => setChecking(false));
+  }, [router]);
+
+  if (checking) {
+    return (
+      <SafeArea flex={1} backgroundColor="$background" justifyContent="center" alignItems="center">
+        <Spinner size="large" color="$color9" />
+      </SafeArea>
+    );
+  }
 
   const handleNext = () => {
     if (currentStep < STEPS.length - 1) {
@@ -94,7 +110,7 @@ export default function OnboardingScreen() {
 
           {/* Button */}
           <Button
-            variant="primary"
+            theme="active"
             size="$5"
             onPress={currentStep === STEPS.length - 1 ? handleFinish : handleNext}
           >
