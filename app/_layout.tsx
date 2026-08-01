@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BlinkProvider, createTamagui, tamaguiDefaultConfig, Theme, BlinkToastProvider } from '@blinkdotnew/mobile-ui';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useNotifications } from '@/hooks/useNotifications';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { usePriceDropNotifications } from '@/hooks/usePriceDropNotifications';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +18,13 @@ const queryClient = new QueryClient({
 });
 
 const config = createTamagui({ ...tamaguiDefaultConfig });
+
+function NotificationServices() {
+  const { user } = useAuth();
+  useNotifications(user?.id);
+  usePriceDropNotifications(user?.id);
+  return null;
+}
 
 function WebStyleReset() {
   if (Platform.OS !== 'web') return null;
@@ -31,13 +39,13 @@ function WebStyleReset() {
 
 export default function RootLayout() {
   useFrameworkReady();
-  useNotifications();
 
   return (
     <BlinkProvider config={config} defaultTheme="light">
       <Theme name="light">
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
+            <NotificationServices />
             <BlinkToastProvider>
               <WebStyleReset />
               <Stack screenOptions={{ headerShown: false }}>
