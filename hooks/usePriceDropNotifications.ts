@@ -9,13 +9,7 @@ const SNAPSHOT_PREFIX = 'carbufox:price-snapshot:';
 const DROP_THRESHOLD = 0.001;
 
 type PriceSnapshot = Record<string, number>;
-
-type PriceDrop = {
-  stationId: string;
-  fuelType: string;
-  oldPrice: number;
-  newPrice: number;
-};
+type PriceDrop = { stationId: string; fuelType: string; oldPrice: number; newPrice: number };
 
 export function usePriceDropNotifications(userId?: string) {
   const favoritesQuery = useQuery({
@@ -41,7 +35,7 @@ export function usePriceDropNotifications(userId?: string) {
     if (Platform.OS === 'web' || !userId || !favoritesQuery.data || !pricesQuery.data || !stationsQuery.data) return;
 
     let cancelled = false;
-    const processPriceDrops = async () => {
+    const checkForDrops = async () => {
       const storageKey = `${SNAPSHOT_PREFIX}${userId}`;
       const stored = await AsyncStorage.getItem(storageKey);
       let previous: PriceSnapshot = {};
@@ -82,7 +76,7 @@ export function usePriceDropNotifications(userId?: string) {
       await AsyncStorage.setItem(storageKey, JSON.stringify(current));
     };
 
-    processPriceDrops().catch(() => undefined);
+    void checkForDrops();
     return () => { cancelled = true; };
   }, [userId, favoritesQuery.data, pricesQuery.data, stationsQuery.data]);
 }
